@@ -1,0 +1,31 @@
+name: Daily Machine Restart
+
+on:
+  schedule:
+    # 每天 UTC 时间 02:00 执行（北京时间 10:00）
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  restart-machines:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade ucloud-sdk-python3
+
+    - name: Restart all machines
+      env:
+        COMPSHARE_PUBLIC_KEY: ${{ secrets.COMPSHARE_PUBLIC_KEY }}
+        COMPSHARE_PRIVATE_KEY: ${{ secrets.COMPSHARE_PRIVATE_KEY }}
+      run: |
+        python scripts/restart_machines.py
