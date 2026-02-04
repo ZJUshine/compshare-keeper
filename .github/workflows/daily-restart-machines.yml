@@ -5,6 +5,12 @@ on:
     # 每天 UTC 时间 02:00 执行（北京时间 10:00）
     - cron: '0 2 * * *'
   workflow_dispatch:  # 允许手动触发
+  push:
+    branches:
+      - main  # 推送到 main 分支时自动执行
+    paths:
+      - 'scripts/restart_machines.py'  # 只有脚本文件改变时才触发
+      - '.github/workflows/daily-restart-machines.yml'  # 或工作流文件改变时触发
 
 jobs:
   restart-machines:

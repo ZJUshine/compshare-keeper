@@ -164,7 +164,7 @@ class CompShareManager:
 def main():
     """主函数"""
     print("=" * 60)
-    print("🔄 CompShare 机器每日重启任务")
+    print("🔄 CompShare 机器每日重启任务（先开机再关机）")
     print("=" * 60)
     print()
 
@@ -178,25 +178,25 @@ def main():
             print("ℹ️  没有找到任何机器，任务结束")
             return 0
 
-        # 2. 关闭所有机器
-        if not manager.stop_instances(instance_ids):
-            print("❌ 关机失败，终止任务")
-            return 1
-
-        # 3. 等待机器关闭
-        manager.wait_for_status(instance_ids, "Stopped", timeout=300)
-
-        # 4. 等待一段时间（确保完全关闭）
-        print("⏸️  等待 30 秒后重新启动...\n")
-        time.sleep(30)
-
-        # 5. 启动所有机器
+        # 2. 先启动所有机器
         if not manager.start_instances(instance_ids):
             print("❌ 开机失败，终止任务")
             return 1
 
-        # 6. 等待机器启动
+        # 3. 等待机器启动
         manager.wait_for_status(instance_ids, "Running", timeout=300)
+
+        # 4. 等待一段时间（确保完全启动）
+        print("⏸️  等待 30 秒后关闭机器...\n")
+        time.sleep(30)
+
+        # 5. 关闭所有机器
+        if not manager.stop_instances(instance_ids):
+            print("❌ 关机失败，终止任务")
+            return 1
+
+        # 6. 等待机器关闭
+        manager.wait_for_status(instance_ids, "Stopped", timeout=300)
 
         print("=" * 60)
         print("✅ 重启任务完成！")
