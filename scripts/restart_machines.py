@@ -55,7 +55,10 @@ class CompShareManager:
                 state = instance.get("State", "未知")
 
                 print(f"  - {instance_id}: {name} (状态: {state})")
-                instance_ids.append(instance_id)
+                if instance_id:
+                    instance_ids.append(instance_id)
+                else:
+                    print("⚠️  跳过无 UHostId 的实例")
 
             print(f"✅ 找到 {len(instance_ids)} 台机器\n")
             return instance_ids
@@ -80,11 +83,11 @@ class CompShareManager:
 
         try:
             print(f"🛑 正在关闭 {len(instance_ids)} 台机器...")
-            resp = self.client.ucompshare().stop_comp_share_instance({
-                "Zone": self.zone,
-                "UHostId": instance_ids[0] if len(instance_ids) == 1 else None,
-                "UHostIds": instance_ids
-            })
+            for instance_id in instance_ids:
+                self.client.ucompshare().stop_comp_share_instance({
+                    "Zone": self.zone,
+                    "UHostId": instance_id
+                })
 
             print(f"✅ 关机请求已发送\n")
             return True
@@ -109,11 +112,11 @@ class CompShareManager:
 
         try:
             print(f"🚀 正在启动 {len(instance_ids)} 台机器...")
-            resp = self.client.ucompshare().start_comp_share_instance({
-                "Zone": self.zone,
-                "UHostId": instance_ids[0] if len(instance_ids) == 1 else None,
-                "UHostIds": instance_ids
-            })
+            for instance_id in instance_ids:
+                self.client.ucompshare().start_comp_share_instance({
+                    "Zone": self.zone,
+                    "UHostId": instance_id
+                })
 
             print(f"✅ 开机请求已发送\n")
             return True
