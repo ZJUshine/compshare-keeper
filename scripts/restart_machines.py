@@ -96,12 +96,13 @@ class CompShareManager:
             print(f"❌ 关机失败: {e}")
             return False
 
-    def start_instances(self, instance_ids: List[str]) -> bool:
+    def start_instances(self, instance_ids: List[str], without_gpu: bool = False) -> bool:
         """
         启动机器实例
 
         Args:
             instance_ids: 机器 ID 列表
+            without_gpu: 是否无卡模式开机
 
         Returns:
             是否成功
@@ -115,7 +116,8 @@ class CompShareManager:
             for instance_id in instance_ids:
                 self.client.ucompshare().start_comp_share_instance({
                     "Zone": self.zone,
-                    "UHostId": instance_id
+                    "UHostId": instance_id,
+                    "WithoutGpu": without_gpu
                 })
 
             print(f"✅ 开机请求已发送\n")
@@ -181,25 +183,45 @@ def main():
             print("ℹ️  没有找到任何机器，任务结束")
             return 0
 
-        # 2. 先启动所有机器
-        if not manager.start_instances(instance_ids):
-            print("❌ 开机失败，终止任务")
-            return 1
+        without_gpu = True
 
-        # 3. 等待机器启动
-        manager.wait_for_status(instance_ids, "Running", timeout=300)
+        # 无卡模式同一时间只能开机 1 台，按顺序处理
+        if without_gpu and len(instance_ids) > 1:
+            for instance_id in instance_ids:
+                if not manager.start_instances([instance_id], without_gpu=without_gpu):
+                    print("❌ 开机失败，终止任务")
+                    return 1
 
-        # 4. 等待一段时间（确保完全启动）
-        print("⏸️  等待 30 秒后关闭机器...\n")
-        time.sleep(30)
+                manager.wait_for_status([instance_id], "Running", timeout=300)
 
-        # 5. 关闭所有机器
-        if not manager.stop_instances(instance_ids):
-            print("❌ 关机失败，终止任务")
-            return 1
+                print("⏸️  等待 30 秒后关闭机器...\n")
+                time.sleep(30)
 
-        # 6. 等待机器关闭
-        manager.wait_for_status(instance_ids, "Stopped", timeout=300)
+                if not manager.stop_instances([instance_id]):
+                    print("❌ 关机失败，终止任务")
+                    return 1
+
+                manager.wait_for_status([instance_id], "Stopped", timeout=300)
+        else:
+            # 2. 先启动所有机器
+            if not manager.start_instances(instance_ids, without_gpu=without_gpu):
+                print("❌ 开机失败，终止任务")
+                return 1
+
+            # 3. 等待机器启动
+            manager.wait_for_status(instance_ids, "Running", timeout=300)
+
+            # 4. 等待一段时间（确保完全启动）
+            print("⏸️  等待 30 秒后关闭机器...\n")
+            time.sleep(30)
+
+            # 5. 关闭所有机器
+            if not manager.stop_instances(instance_ids):
+                print("❌ 关机失败，终止任务")
+                return 1
+
+            # 6. 等待机器关闭
+            manager.wait_for_status(instance_ids, "Stopped", timeout=300)
 
         print("=" * 60)
         print("✅ 重启任务完成！")
