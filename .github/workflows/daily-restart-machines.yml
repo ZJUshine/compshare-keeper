@@ -2,8 +2,8 @@ name: Daily Machine Restart
 
 on:
   schedule:
-    # 每天 UTC 时间 02:00 执行（北京时间 10:00）
-    - cron: '0 2 * * *'
+    # 每天 UTC 时间 18:00 执行（北京时间 02:00）
+    - cron: '0 18 * * *'
   workflow_dispatch:  # 允许手动触发
   push:
     branches:
